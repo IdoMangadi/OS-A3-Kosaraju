@@ -12,92 +12,137 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <poll.h>
+#include <algorithm> // Add this line
 #include <string>
-
-extern "C" {
+#include <iostream>
 #include "deque_AL.hpp"
-}
+#include <sstream>
 
 #define PORT "9034" // Port we're listening on
 using namespace std;
 // Function to convert a string to lowercase
-string toLowerCase(string s) {
+string toLowerCase(string s)
+{
     transform(s.begin(), s.end(), s.begin(), ::tolower);
     return s;
 }
 
-void initGraph(Graph* g, int m) {
-    for (int i = 0; i < m; i++) { // Read the edges
+void initGraph(Graph *g, int m, int sender_fd)
+{
+    int stdin_save = dup(STDIN_FILENO); // Save the current state of STDIN
+    dup2(sender_fd, STDIN_FILENO);      // Redirect STDIN to the socket
+    for (int i = 0; i < m; i++)
+    { // Read the edges
         int u, v;
         cin >> u >> v;
-        g->addEdge(u - 1, v - 1); // Add edge from u to v
+        g->addEdge(u - 1, v - 1);        // Add edge from u to v
         g->addEdgeReverse(u - 1, v - 1); // Also add reverse edge for the transpose graph
     }
+    dup2(stdin_save, STDIN_FILENO); // Restore the original STDIN
 }
 
-string handleInput(Graph* g, string action, int sender_fd) {
-   string msg;
-    if (action == "newgraph") {
-        int n, m;
-        cin >> n >> m; // Read number of vertices and edges
-        if (g != nullptr) {
+std::vector<std::string> splitStringBySpaces(const std::string &input)
+{
+    std::istringstream stream(input);
+    std::vector<std::string> result;
+    std::string temp;
+
+    while (stream >> temp)
+    {
+        result.push_back(temp);
+    }
+
+    return result;
+}
+
+pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
+{
+    string msg;
+    vector<string> tokens = splitStringBySpaces(action);
+    string realAction = tokens[0];
+    int n, m;
+
+    if (realAction == "newgraph")
+    {
+        n = stoi(tokens[1]);
+        m = stoi(tokens[2]);
+
+        if (g != nullptr)
+        {
             delete g;
         }
         g = new Graph(n); // Create a new graph of n vertices
-        initGraph(g, m);
+
+        initGraph(g, m, sender_fd);
         msg = "User" + to_string(sender_fd) + " successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges\n";
+        return {msg, g};
     }
-    else if (action == "newedge") {
-        int u, v;
-        cin >> u >> v; // Read the edge vertices
-        if (g != nullptr) {
-            g->addEdge(u - 1, v - 1); // Add edge from u to v
-            g->addEdgeReverse(u - 1, v - 1); // Add reverse edge for the transpose graph
+    else if (realAction == "newedge")
+    {
+        if (g != nullptr)
+        {
+            n = stoi(tokens[1]);
+            m = stoi(tokens[2]);
+            cout << &(*g);
+            g->addEdge(n - 1, m - 1);        // Add edge from u to v
+            g->addEdgeReverse(n - 1, m - 1); // Add reverse edge for the transpose graph
         }
-        msg = "User" + to_string(sender_fd) + " added an edge from " + to_string(u) + " to " + to_string(v) + "\n";
+        msg = "User" + to_string(sender_fd) + " added an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+        return {msg, nullptr};
     }
-    else if (action == "removeedge") {
-        int u, v;
-        cin >> u >> v; // Read the edge vertices
-        if (g != nullptr) {
-            g->removeEdge(u - 1, v - 1); // Remove edge from u to v
+    else if (realAction == "removeedge")
+    {
+        if (g != nullptr)
+        {
+            n = stoi(tokens[1]);
+            m = stoi(tokens[2]);
+            g->removeEdge(n - 1, m - 1); // Remove edge from u to v
         }
-        msg = "User" + to_string(sender_fd) + " removed an edge from " + to_string(u) + " to " + to_string(v) + "\n";
+        msg = "User" + to_string(sender_fd) + " removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+        return {msg, nullptr};
     }
-    else if (action == "kosaraju") {
-        if (g == nullptr) {
-            msg =  "User " + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
-    
+    else if (realAction == "kosaraju")
+    {
+        if (g == nullptr)
+        {
+            msg = "User " + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
+            return {msg, nullptr};
         }
-      
-      else {
-     msg = "User" + to_string(sender_fd) + " requested to print all strongly connected components\n";
-    int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
-    int pipefd[2];
-    pipe(pipefd); // Create a pipe
-    dup2(pipefd[1], STDOUT_FILENO); // Redirect STDOUT to the pipe
-    close(pipefd[1]); // Close the write-end of the pipe as it's now duplicated
+        else
+        {
+            msg = "User" + to_string(sender_fd) + " requested to print all strongly connected components\n";
+            int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
+            int pipefd[2];
+            pipe(pipefd);                   // Create a pipe
+            dup2(pipefd[1], STDOUT_FILENO); // Redirect STDOUT to the pipe
+            close(pipefd[1]);               // Close the write-end of the pipe as it's now duplicated
 
-    g->printSCCs(); // This will write to the pipe instead of STDOUT
+            g->printSCCs(); // This will write to the pipe instead of STDOUT
 
-    // Restore the original STDOUT
-    dup2(stdout_save, STDOUT_FILENO);
-    close(stdout_save); // Close the saved STDOUT
+            // Restore the original STDOUT
+            dup2(stdout_save, STDOUT_FILENO);
+            close(stdout_save); // Close the saved STDOUT
 
-    // Read from the pipe
-    std::string output;
-    char buffer[128];
-    ssize_t bytes_read;
-    while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
-        buffer[bytes_read] = '\0'; // Null-terminate the string
-        output += buffer;
+            // Read from the pipe
+            std::string output;
+            char buffer[128];
+            ssize_t bytes_read;
+            while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0)
+            {
+                buffer[bytes_read] = '\0'; // Null-terminate the string
+                output += buffer;
+            }
+            close(pipefd[0]); // Close the read-end of the pipe
+            // Use 'output' as needed
+            msg += "SCCs Output: \n" + output + "\n";
+            return {msg, nullptr};
+        }
     }
-    close(pipefd[0]); // Close the read-end of the pipe
-    // Use 'output' as needed
-    msg += "SCCs Output: " + output + "\n";
+    else
+    {
+        msg = "User " + to_string(sender_fd) + " sent a message:\n" + action + "\n";
+        return {msg, nullptr};
     }
-    return msg;
-}
 }
 
 // Get sockaddr, IPv4 or IPv6:
@@ -117,7 +162,6 @@ int get_listener_socket(void)
     int listener; // Listening socket descriptor
     int yes = 1;  // For setsockopt() SO_REUSEADDR, below
     int rv;
-    Graph *g;
 
     struct addrinfo hints, *ai, *p;
 
@@ -200,6 +244,8 @@ int main(void)
 {
     Graph *g = nullptr;
     int listener; // Listening socket descriptor
+    pair<string, Graph *> ret;
+    string action;
 
     int newfd;                          // Newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // Client address
@@ -302,10 +348,21 @@ int main(void)
                     else
                     {
                         // We got some good data from a client
-                        string action = toLowerCase(string(buf));
-                        msg = handleInput(g, action, sender_fd);
+                        buf[nbytes] = '\0';
+                         action = toLowerCase(string(buf));
+                       
+                        cout << "Action: " << action << endl;
+                        cout << &(*g) << endl;
+
+                        ret = handleInput(g, action, sender_fd);
+                        msg = ret.first;
+                        if (ret.second != nullptr)
+                        {
+                            g = ret.second;
+                        }
                     }
                     char *msg_buf = new char[msg.length() + 1];
+                    nbytes = msg.length();
                     strcpy(msg_buf, msg.c_str());
                     // Send to everyone!
 
@@ -317,18 +374,24 @@ int main(void)
                         // Except the listener and ourselves
                         if (dest_fd != listener)
                         {
-                            if (send(dest_fd, msg_buf, nbytes, 0) == -1)
+                            if(dest_fd == sender_fd && action=="kosaraju")
+                            {
+                                continue;
+                            }
+                            else if (send(dest_fd, msg_buf, nbytes, 0) == -1)
                             {
                                 perror("send");
                             }
                         }
                     }
                     delete[] msg_buf;
+                    msg = "";
+
                 }
             } // END handle data from client
         } // END got ready-to-read from poll()
     } // END looping through file descriptors
- // END for(;;)--and you thought it would never end!
+    // END for(;;)--and you thought it would never end!
 
-return 0;
+    return 0;
 }

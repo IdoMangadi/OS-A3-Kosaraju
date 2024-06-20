@@ -1,6 +1,5 @@
 // deque_AL.hpp
-#ifndef DEQUE_AL_HPP
-#define DEQUE_AL_HPP
+
 
 #include <iostream>
 #include <deque>
@@ -27,12 +26,5 @@ public:
     void removeEdge(int v, int w); // Function to remove an edge from v to w
 };
 
-extern "C" {
-    Graph* create_graph(int V);
-    void delete_graph(Graph* g);
-    void add_edge(Graph* g, int v, int w);
-    void remove_edge(Graph* g, int v, int w);
-    void print_sccs(Graph* g);
-}
 
-#endif // DEQUE_AL.HPP
+

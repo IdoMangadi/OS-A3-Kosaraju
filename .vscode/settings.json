@@ -68,6 +68,14 @@
         "concepts": "cpp",
         "netdb.h": "c",
         "poll.h": "c",
-        "in.h": "c"
+        "in.h": "c",
+        "*.tcc": "cpp",
+        "functional": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "utility": "cpp",
+        "numbers": "cpp"
     }
 }

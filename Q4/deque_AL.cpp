@@ -76,25 +76,4 @@ void Graph::printSCCs() {
     }
 }
 
-extern "C" {
-    Graph* create_graph(int V) {
-        return new Graph(V);
-    }
 
-    void delete_graph(Graph* g) {
-        delete g;
-    }
-
-    void add_edge(Graph* g, int v, int w) {
-        g->addEdge(v, w);
-        g->addEdgeReverse(v, w);
-    }
-
-    void remove_edge(Graph* g, int v, int w) {
-        g->removeEdge(v, w);
-    }
-
-    void print_sccs(Graph* g, int client_fd) {
-        g->printSCCs();
-    }
-}

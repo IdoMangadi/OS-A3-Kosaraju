@@ -1,4 +1,4 @@
-CC = g++
+CC = g++ 
 CFLAGS = -Wall -g -std=c++11
 CFLAGS_C = -Wall -g
 SRC_CPP = $(wildcard *.cpp)
@@ -10,7 +10,7 @@ OBJ_C = $(SRC_C:.c=.o)
 
 all: kosaraju
 
-kosaraju: $(OBJ_CPP) $(OBJ_C)
+kosaraju: $(OBJ_CPP) 
 	$(CC) $(CFLAGS) -o $@ $^
 
 %.o: %.cpp
