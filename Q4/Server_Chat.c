@@ -12,11 +12,14 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <poll.h>
-#include "deque_AL.hpp"
 #include <string>
 
-#define PORT "9034" // Port we're listening on
+extern "C" {
+#include "deque_AL.hpp"
+}
 
+#define PORT "9034" // Port we're listening on
+using namespace std;
 // Function to convert a string to lowercase
 string toLowerCase(string s) {
     transform(s.begin(), s.end(), s.begin(), ::tolower);
@@ -32,8 +35,8 @@ void initGraph(Graph* g, int m) {
     }
 }
 
-string handleInput(Graph* g, string action) {
-    string msg;
+string handleInput(Graph* g, string action, int sender_fd) {
+   string msg;
     if (action == "newgraph") {
         int n, m;
         cin >> n >> m; // Read number of vertices and edges
@@ -63,13 +66,38 @@ string handleInput(Graph* g, string action) {
     }
     else if (action == "kosaraju") {
         if (g == nullptr) {
-            cout << "User" + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
-            continue;
+            msg =  "User " + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
+    
         }
-        msg = "User" + to_string(sender_fd) + " requested to print all strongly connected components\n";
-        g->printSCCs(); // Print all strongly connected components
+      
+      else {
+     msg = "User" + to_string(sender_fd) + " requested to print all strongly connected components\n";
+    int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
+    int pipefd[2];
+    pipe(pipefd); // Create a pipe
+    dup2(pipefd[1], STDOUT_FILENO); // Redirect STDOUT to the pipe
+    close(pipefd[1]); // Close the write-end of the pipe as it's now duplicated
+
+    g->printSCCs(); // This will write to the pipe instead of STDOUT
+
+    // Restore the original STDOUT
+    dup2(stdout_save, STDOUT_FILENO);
+    close(stdout_save); // Close the saved STDOUT
+
+    // Read from the pipe
+    std::string output;
+    char buffer[128];
+    ssize_t bytes_read;
+    while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
+        buffer[bytes_read] = '\0'; // Null-terminate the string
+        output += buffer;
+    }
+    close(pipefd[0]); // Close the read-end of the pipe
+    // Use 'output' as needed
+    msg += "SCCs Output: " + output + "\n";
     }
     return msg;
+}
 }
 
 // Get sockaddr, IPv4 or IPv6:
@@ -170,7 +198,7 @@ void del_from_pfds(struct pollfd pfds[], int i, int *fd_count)
 // Main
 int main(void)
 {
-Graph *g = nullptr;
+    Graph *g = nullptr;
     int listener; // Listening socket descriptor
 
     int newfd;                          // Newly accept()ed socket descriptor
@@ -275,52 +303,11 @@ Graph *g = nullptr;
                     {
                         // We got some good data from a client
                         string action = toLowerCase(string(buf));
-
-                        
-                        if (action == "newgraph")
-                        {
-                            int n, m;
-                            cin >> n >> m; // Read number of vertices and edges
-                            if (g != nullptr)
-                            {
-                                delete g;
-                            }
-                            g = new Graph(n); // Create a new graph of n vertices
-                            initGraph(g, m);
-                            msg = "User" + to_string(sender_fd) + " successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges\n";
-                        }
-                       
-                        else if (action == "newedge")
-                        {
-                            int u, v;
-                            cin >> u >> v; // Read the edge vertices
-                            if (g != nullptr)
-                            {
-                                g->addEdge(u - 1, v - 1);        // Add edge from u to v
-                                g->addEdgeReverse(u - 1, v - 1); // Add reverse edge for the transpose graph
-                            }
-                            msg = "User" + to_string(sender_fd) + " added an edge from " + to_string(u) + " to " + to_string(v) + "\n";
-                        }
-                        else if (action == "removeedge")
-                        {
-                            int u, v;
-                            cin >> u >> v; // Read the edge vertices
-                            if (g != nullptr)
-                            {
-                                g->removeEdge(u - 1, v - 1); // Remove edge from u to v
-                            }
-                            msg = "User" + to_string(sender_fd) + " removed an edge from " + to_string(u) + " to " + to_string(v) + "\n";
-                        }
-                         else if (action == "kosaraju")
-                        {
-                            if (g == nullptr)
-                            {
-                                cout << "User" + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
-                                continue;
-                            }
-                            g->printSCCs(); // Print all strongly connected components
-                        }
+                        msg = handleInput(g, action, sender_fd);
                     }
+                    char *msg_buf = new char[msg.length() + 1];
+                    strcpy(msg_buf, msg.c_str());
+                    // Send to everyone!
 
                     for (int j = 0; j < fd_count; j++)
                     {
@@ -328,14 +315,15 @@ Graph *g = nullptr;
                         int dest_fd = pfds[j].fd;
 
                         // Except the listener and ourselves
-                        if (dest_fd != listener && dest_fd != sender_fd)
+                        if (dest_fd != listener)
                         {
-                            if (send(dest_fd, buf, nbytes, 0) == -1)
+                            if (send(dest_fd, msg_buf, nbytes, 0) == -1)
                             {
                                 perror("send");
                             }
                         }
                     }
+                    delete[] msg_buf;
                 }
             } // END handle data from client
         } // END got ready-to-read from poll()

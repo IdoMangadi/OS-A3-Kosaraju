@@ -67,6 +67,7 @@
         "compare": "cpp",
         "concepts": "cpp",
         "netdb.h": "c",
-        "poll.h": "c"
+        "poll.h": "c",
+        "in.h": "c"
     }
 }

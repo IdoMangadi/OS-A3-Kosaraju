@@ -41,35 +41,39 @@ void Graph::DFS(int v, vector<bool>& visited, vector<int>& component) {
     }
 }
 
-void Graph::printSCCs(int client_fd) {
+// Print all strongly connected components
+void Graph::printSCCs() {
     stack<int> Stack;
     vector<bool> visited(V, false);
 
+    // Fill vertices in stack according to their finishing times
     for (int i = 0; i < V; i++) {
         if (!visited[i]) {
             fillOrder(i, visited, Stack);
         }
     }
 
+    // Mark all the vertices as not visited (For the second DFS)
     fill(visited.begin(), visited.end(), false);
 
-    string result;
+    // Now process all vertices in order defined by Stack
     while (!Stack.empty()) {
         int v = Stack.top();
         Stack.pop();
 
+        // Print Strongly connected component of the popped vertex
         if (!visited[v]) {
             vector<int> component;
             DFS(v, visited, component);
 
+            // Print the component
             sort(component.begin(), component.end());
             for (int i : component) {
-                result += to_string(i + 1) + " ";
+                cout << i + 1 << " ";
             }
-            result += "\n";
+            cout << endl;
         }
     }
-    send(client_fd, result.c_str(), result.size(), 0);
 }
 
 extern "C" {
@@ -91,6 +95,6 @@ extern "C" {
     }
 
     void print_sccs(Graph* g, int client_fd) {
-        g->printSCCs(client_fd);
+        g->printSCCs();
     }
 }

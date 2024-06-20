@@ -23,7 +23,7 @@ public:
     Graph(int V); // Constructor to initialize a graph with V vertices
     void addEdge(int v, int w); // Function to add an edge from v to w
     void addEdgeReverse(int v, int w); // Function to add a reverse edge from w to v for the transpose graph
-    void printSCCs(int client_fd); // Function to print all strongly connected components
+    void printSCCs(); // Function to print all strongly connected components
     void removeEdge(int v, int w); // Function to remove an edge from v to w
 };
 
@@ -32,7 +32,7 @@ extern "C" {
     void delete_graph(Graph* g);
     void add_edge(Graph* g, int v, int w);
     void remove_edge(Graph* g, int v, int w);
-    void print_sccs(Graph* g, int client_fd);
+    void print_sccs(Graph* g);
 }
 
 #endif // DEQUE_AL.HPP
