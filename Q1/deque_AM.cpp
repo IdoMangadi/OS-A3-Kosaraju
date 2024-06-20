@@ -12,8 +12,8 @@ using namespace std;
  */
 class Graph {
     int V; // Number of vertices in the graph
-    deque<deque<bool>> adj; // Adjacency matrix for storing edges
-    deque<deque<bool>> adjRev; // Adjacency matrix for storing reverse edges
+    deque<deque<bool> > adj; // Adjacency matrix for storing edges
+    deque<deque<bool>  > adjRev; // Adjacency matrix for storing reverse edges
 
     /**
      * @brief Helper function for DFS to store vertices by finish time

@@ -1,31 +1,19 @@
-/**
- * By the profiling results, the best implementation is the one that uses the deque of deques to store the adjacency list.
- */
-#include <iostream>
-#include <deque>
-#include <stack>
-#include <algorithm>
-#include <vector>
+#include "deque_AL.hpp"
 
-using namespace std;
 
-// Class definition for a directed graph
-class Graph {
-    
-    int V; // Number of vertices in the graph
-    deque<deque<int>> adj; // Adjacency list for storing edges
-    deque<deque<int>> adjRev; // Adjacency list for storing reverse edges
+string toLowerCase(string s) {
+    transform(s.begin(), s.end(), s.begin(), ::tolower);
+    return s;
+}
 
-    void fillOrder(int v, vector<bool>& visited, stack<int>& Stack); // Helper function for DFS to store vertices by finish time
-    void DFS(int v, vector<bool>& visited, vector<int>& component); // Recursive function for standard DFS
-
-public:
-    Graph(int V); // Constructor to initialize a graph with V vertices
-    void addEdge(int v, int w); // Function to add an edge from v to w
-    void printSCCs(); // Function to print all strongly connected components
-    Graph getTranspose(); // Function to create a transpose of the graph
-    void removeEdge(int v, int w);
-};
+void initGraph(Graph* g, int m) {
+    for (int i = 0; i < m; i++) { // Read the edges
+        int u, v;
+        cin >> u >> v;
+        g->addEdge(u - 1, v - 1); // Add edge from u to v
+        g->addEdgeReverse(u - 1, v - 1); // Also add reverse edge for the transpose graph
+    }
+}
 
 // Constructor initializes the graph with given number of vertices
 Graph::Graph(int V) {
@@ -37,12 +25,14 @@ Graph::Graph(int V) {
 // Function to add a directed edge from vertex v to vertex w
 void Graph::addEdge(int v, int w) {
     adj[v].push_back(w); //add w to v's list
-    adjRev[w].push_back(v); //add v to w's list
-
 }
 
 // Function to add a reverse edge from vertex w to vertex v
+void Graph::addEdgeReverse(int v, int w) {
+    adjRev[w].push_back(v);
+}
 
+// Function to remove a directed edge from vertex v to vertex w
 void Graph::removeEdge(int v, int w){
     adj[v].erase(remove(adj[v].begin(), adj[v].end(), w), adj[v].end());
     adjRev[w].erase(remove(adjRev[w].begin(), adjRev[w].end(), v), adjRev[w].end());
@@ -72,79 +62,84 @@ void Graph::DFS(int v, vector<bool>& visited, vector<int>& component) {
 
 // Print all strongly connected components
 void Graph::printSCCs() {
-    stack<int> Stack; // Stack to store the vertices based on finish times
-    vector<bool> visited(V, false); // Track visited vertices
+    stack<int> Stack;
+    vector<bool> visited(V, false);
 
-    for (int i = 0; i < V; i++) { // Order the vertices as per their finish times
+    // Fill vertices in stack according to their finishing times
+    for (int i = 0; i < V; i++) {
         if (!visited[i]) {
             fillOrder(i, visited, Stack);
         }
     }
 
-    fill(visited.begin(), visited.end(), false); // Reset visited for the second pass
+    // Mark all the vertices as not visited (For the second DFS)
+    fill(visited.begin(), visited.end(), false);
 
-    while (!Stack.empty()) { // Process all vertices in order defined by Stack
-        int v = Stack.top(); // Pop a vertex from stack
+    // Now process all vertices in order defined by Stack
+    while (!Stack.empty()) {
+        int v = Stack.top();
         Stack.pop();
-        if (!visited[v]) { // If not yet visited
+
+        // Print Strongly connected component of the popped vertex
+        if (!visited[v]) {
             vector<int> component;
-            DFS(v, visited, component); // Find all reachable vertices
-            sort(component.begin(), component.end()); // Optional: sort the component
+            DFS(v, visited, component);
+
+            // Print the component
+            sort(component.begin(), component.end());
             for (int i : component) {
-                cout << i + 1 << " "; // Print the component
+                cout << i + 1 << " ";
             }
             cout << endl;
         }
     }
 }
-void initGraph(Graph* g, int n, int m){
-    for (int i = 0; i < m; i++) { // Read the edges
-        int u, v;
-        cin >> u >> v;
-        g->addEdge(u - 1, v - 1); // Add edge from u to v
-    }
-}
 
 int main() {
     Graph* g = nullptr;
-    
+
     string action;
-    string indexes;
-    while(true){
+    while (true) {
         cin >> action;
-        if(action == "NewGraph"){
-            cin >> indexes; // Read the edge vertices
-            int n = indexes[0] - '0';
-            int m = indexes[2] - '0';
-            Graph g1(n); // Create a graph of n vertices
-            // g = new Graph(n); // Create a graph of n vertices
-            g = &g1;
-            initGraph(g, n, m);
+        action = toLowerCase(action); // Convert action to lower case
+        if (action == "newgraph") {
+            int n, m;
+            cin >> n >> m; // Read number of vertices and edges
+            if (g != nullptr) {
+                delete g;
+            }
+            g = new Graph(n); // Create a new graph of n vertices
+            initGraph(g, m);
         }
-        else if(action == "Kosaraju"){
-            if (g==nullptr)
-            {
+        else if (action == "kosaraju") {
+            if (g == nullptr) {
                 cout << "No graph to perform the operation\n";
                 continue;
             }
-            
             g->printSCCs(); // Print all strongly connected components
         }
-        else if(action == "Newedge"){
-             cin >> indexes; // Read the edge vertices
-            int n = indexes[0] - '0';
-            int m = indexes[2] - '0';
-            g->addEdge(n-1, m-1); // Add edge from u to v
+        else if (action == "newedge") {
+            int u, v;
+            cin >> u >> v; // Read the edge vertices
+            if (g != nullptr) {
+                g->addEdge(u - 1, v - 1); // Add edge from u to v
+                g->addEdgeReverse(u - 1, v - 1); // Add reverse edge for the transpose graph
+            }
         }
-        else if(action == "Removeedge"){
-             cin >> indexes; // Read the edge vertices
-            int n = indexes[0] - '0';
-            int m = indexes[2] - '0';
-            g->removeEdge(n-1, m-1); // Add edge from u to v
+        else if (action == "removeedge") {
+            int u, v;
+            cin >> u >> v; // Read the edge vertices
+            if (g != nullptr) {
+                g->removeEdge(u - 1, v - 1); // Remove edge from u to v
+            }
         }
-        else if(action == "Exit"){
+        else if (action == "exit") {
+            if (g != nullptr) {
+                delete g;
+            }
             break;
         }
+    }
+    return 0;
 }
- return 0;
-}
+
