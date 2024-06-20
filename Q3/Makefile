@@ -5,20 +5,20 @@ OBJ = $(SRC:.cpp=.o)
 
 .PHONY: all clean
 
-all: deque_AL
+all: kosaraju
 
-deque_AL: $(OBJ)
+kosaraju: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $<
 
 # profiling:
-run_prof: deque_AL
-	./deque_AL < graph10000_300000.txt > deque_AL_output.txt 2>&1 || true
+run_prof: kosaraju
+	./kosaraju < graph10000_300000.txt > deque_AL_output.txt 2>&1 || true
 
 clean:
-	rm -f *.o deque_AL
+	rm -f *.o kosaraju
 
 cleanAll: clean
 	rm -f *.gcda *.gcno *.gcov gmon.out
