@@ -18,6 +18,7 @@ class Graph {
 public:
     Graph(int V);
     void addEdge(int v, int w);
+    void addEdgeReverse(int v, int w);
     void printSCCs();
 };
 
@@ -30,11 +31,14 @@ Graph::Graph(int V) : V(V) {
 
 void Graph::addEdge(int v, int w) {
     auto it = next(adj.begin(), v);
-    auto itRev = next(adjRev.begin(), w);
     auto listIt = next(it->begin(), w);
-    auto listItRev = next(itRev->begin(), v);
     *listIt = true;
-    *listItRev = true;
+}
+
+void Graph::addEdgeReverse(int v, int w) {
+    auto it = next(adjRev.begin(), w);
+    auto listIt = next(it->begin(), v);
+    *listIt = true;
 }
 
 void Graph::fillOrder(int v, vector<bool>& visited, stack<int>& Stack) {
@@ -108,6 +112,7 @@ int main() {
         int u, v;
         cin >> u >> v;
         g.addEdge(u - 1, v - 1);
+        g.addEdgeReverse(v - 1, u - 1);
     }
 
     g.printSCCs();

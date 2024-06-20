@@ -12,8 +12,8 @@ def create_graph_file(vertices, edges, edge_list, filename):
     print(f"Graph file created: {filename}")
 
 # Number of vertices and edges
-vertices = 1500
-edges = 8000
+vertices = 10000
+edges = 300000
 
 # Generate a list of edges
 edge_list = set()

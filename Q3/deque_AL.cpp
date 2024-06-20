@@ -1,3 +1,6 @@
+/**
+ * By the profiling results, the best implementation is the one that uses the deque of deques to store the adjacency list.
+ */
 #include <iostream>
 #include <deque>
 #include <stack>
@@ -19,9 +22,9 @@ class Graph {
 public:
     Graph(int V); // Constructor to initialize a graph with V vertices
     void addEdge(int v, int w); // Function to add an edge from v to w
-    void addEdgeReverse(int v, int w); // Function to add a reverse edge from w to v for the transpose graph
     void printSCCs(); // Function to print all strongly connected components
     Graph getTranspose(); // Function to create a transpose of the graph
+    void removeEdge(int v, int w);
 };
 
 // Constructor initializes the graph with given number of vertices
@@ -33,12 +36,16 @@ Graph::Graph(int V) {
 
 // Function to add a directed edge from vertex v to vertex w
 void Graph::addEdge(int v, int w) {
-    adj[v].push_back(w);
+    adj[v].push_back(w); //add w to v's list
+    adjRev[w].push_back(v); //add v to w's list
+
 }
 
 // Function to add a reverse edge from vertex w to vertex v
-void Graph::addEdgeReverse(int v, int w) {
-    adjRev[w].push_back(v);
+
+void Graph::removeEdge(int v, int w){
+    adj[v].erase(remove(adj[v].begin(), adj[v].end(), w), adj[v].end());
+    adjRev[w].erase(remove(adjRev[w].begin(), adjRev[w].end(), v), adjRev[w].end());
 }
 
 // Fill order for vertices in DFS based on their finish times
@@ -90,19 +97,54 @@ void Graph::printSCCs() {
         }
     }
 }
-
-int main() {
-    int n, m; // Number of vertices and edges
-    cin >> n >> m; // Read number of vertices and edges
-    Graph g(n); // Create a graph of n vertices
+void initGraph(Graph* g, int n, int m){
     for (int i = 0; i < m; i++) { // Read the edges
         int u, v;
         cin >> u >> v;
-        g.addEdge(u - 1, v - 1); // Add edge from u to v
-        g.addEdgeReverse(u - 1, v - 1); // Also add reverse edge for the transpose graph
+        g->addEdge(u - 1, v - 1); // Add edge from u to v
     }
-    cout << "\n";
-    g.printSCCs(); // Print all strongly connected components
+}
 
-    return 0;
+int main() {
+    Graph* g = nullptr;
+    
+    string action;
+    string indexes;
+    while(true){
+        cin >> action;
+        if(action == "NewGraph"){
+            cin >> indexes; // Read the edge vertices
+            int n = indexes[0] - '0';
+            int m = indexes[2] - '0';
+            Graph g1(n); // Create a graph of n vertices
+            // g = new Graph(n); // Create a graph of n vertices
+            g = &g1;
+            initGraph(g, n, m);
+        }
+        else if(action == "Kosaraju"){
+            if (g==nullptr)
+            {
+                cout << "No graph to perform the operation\n";
+                continue;
+            }
+            
+            g->printSCCs(); // Print all strongly connected components
+        }
+        else if(action == "Newedge"){
+             cin >> indexes; // Read the edge vertices
+            int n = indexes[0] - '0';
+            int m = indexes[2] - '0';
+            g->addEdge(n-1, m-1); // Add edge from u to v
+        }
+        else if(action == "Removeedge"){
+             cin >> indexes; // Read the edge vertices
+            int n = indexes[0] - '0';
+            int m = indexes[2] - '0';
+            g->removeEdge(n-1, m-1); // Add edge from u to v
+        }
+        else if(action == "Exit"){
+            break;
+        }
+}
+ return 0;
 }

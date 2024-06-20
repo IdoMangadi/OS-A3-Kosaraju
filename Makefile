@@ -23,10 +23,14 @@ list_AM: list_AM.o
 
 # profiling:
 run_prof: deque_AM deque_AL list_AL list_AM
-	./deque_AM < graph1500_8000.txt> deque_AM_output.txt 2>&1 || true
-	./deque_AL < graph1500_8000.txt > deque_AL_output.txt 2>&1 || true
-	./list_AL < graph1500_8000.txt > list_AL_output.txt 2>&1 || true
-	./list_AM < graph1500_8000.txt > list_AM_output.txt 2>&1 || true
+	./deque_AM < graph10000_300000.txt> deque_AM_output.txt 2>&1 || true
+	gprof deque_AM gmon.out > deque_AM_analysis.txt
+	./deque_AL < graph10000_300000.txt > deque_AL_output.txt 2>&1 || true
+	gprof deque_AL gmon.out > deque_AL_analysis.txt
+	./list_AL < graph10000_300000.txt > list_AL_output.txt 2>&1 || true
+	gprof list_AL gmon.out > list_AL_analysis.txt
+	./list_AM < graph10000_300000.txt > list_AM_output.txt 2>&1 || true
+	gprof list_AM gmon.out > list_AM_analysis.txt
 
 prof_analysis: run_prof
 	gprof deque_AM gmon.out > deque_AM_analysis.txt

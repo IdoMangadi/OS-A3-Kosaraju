@@ -18,6 +18,7 @@ class Graph {
 public:
     Graph(int V);
     void addEdge(int v, int w);
+    void addEdgeReverse(int v, int w);
     void printSCCs();
 };
 
@@ -25,6 +26,9 @@ Graph::Graph(int V) : V(V), adj(V), adjRev(V) {}
 
 void Graph::addEdge(int v, int w) {
     adj[v].push_back(w); // Add w to v’s list
+}
+
+void Graph::addEdgeReverse(int v, int w) {
     adjRev[w].push_back(v); // Add v to w’s reverse list
 }
 
@@ -86,6 +90,7 @@ int main() {
         int u, v;
         cin >> u >> v;
         g.addEdge(u - 1, v - 1); // Add edge from u to v
+        g.addEdgeReverse(u - 1, v - 1); // Also add reverse edge for the transpose graph
     }
 
     cout << "\n";

@@ -2,6 +2,7 @@
 #include <deque>
 #include <stack>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -20,7 +21,7 @@ class Graph {
      * @param visited Visited vertices tracker
      * @param Stack Stack to store vertices by finish time
      */
-    void fillOrder(int v, deque<bool>& visited, stack<int>& Stack);
+    void fillOrder(int v, vector<bool>& visited, stack<int>& Stack);
 
     /**
      * @brief Recursive function for standard DFS
@@ -28,7 +29,7 @@ class Graph {
      * @param visited Visited vertices tracker
      * @param component deque to store the current component
      */
-    void DFS(int v, deque<bool>& visited, deque<int>& component);
+    void DFS(int v, vector<bool>& visited, vector<int>& component);
 
 public:
     /**
@@ -71,7 +72,7 @@ void Graph::addEdgeReverse(int v, int w) {
     adjRev[w][v] = true; // Add a reverse edge from w to v
 }
 
-void Graph::fillOrder(int v, deque<bool>& visited, stack<int>& Stack) {
+void Graph::fillOrder(int v, vector<bool>& visited, stack<int>& Stack) {
     visited[v] = true; // Mark the current node as visited
     for (int i = 0; i < V; i++) {
         if (adj[v][i] && !visited[i]) { // For all vertices adjacent to v
@@ -81,7 +82,7 @@ void Graph::fillOrder(int v, deque<bool>& visited, stack<int>& Stack) {
     Stack.push(v); // Push current vertex to stack which stores result
 }
 
-void Graph::DFS(int v, deque<bool>& visited, deque<int>& component) {
+void Graph::DFS(int v, vector<bool>& visited, vector<int>& component) {
     visited[v] = true; // Mark the current node as visited
     component.push_back(v); // Add it to the component
     for (int i = 0; i < V; i++) {
@@ -93,7 +94,7 @@ void Graph::DFS(int v, deque<bool>& visited, deque<int>& component) {
 
 void Graph::printSCCs() {
     stack<int> Stack; // Stack to store the vertices based on finish times
-    deque<bool> visited(V, false); // Track visited vertices
+    vector<bool> visited(V, false); // Track visited vertices
 
     for (int i = 0; i < V; i++) { // Order the vertices as per their finish times
         if (!visited[i]) {
@@ -107,7 +108,7 @@ void Graph::printSCCs() {
         int v = Stack.top(); // Pop a vertex from stack
         Stack.pop();
         if (!visited[v]) { // If not yet visited
-            deque<int> component;
+            vector<int> component;
             DFS(v, visited, component); // Find all reachable vertices
             sort(component.begin(), component.end()); // Optional: sort the component
             for (int i : component) {
