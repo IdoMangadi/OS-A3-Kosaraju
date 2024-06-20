@@ -46,7 +46,7 @@ The server will then wait for input commands. Commands are structured as follows
 - `Newgraph n,m`: Initializes a new graph with `n` vertices and `m` edges.
 - `Newedge i,j`: Adds a directed edge from vertex `i` to vertex `j`.
 - `Removeedge i,j`: Removes the directed edge from vertex `i` to vertex `j`.
-- `Calculate`: Runs Kosaraju's algorithm on the current graph and outputs the SCCs.
+- `Kosaraju`: Runs Kosaraju's algorithm on the current graph and outputs the SCCs.
 
 ## Features
 
