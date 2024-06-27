@@ -18,7 +18,7 @@
 #include "deque_AL.hpp"
 #include <sstream>
 
-#define PORT "9034" // Port we're listening on
+#define PORT "9036" // Port we're listening on
 using namespace std;
 // Function to convert a string to lowercase
 string toLowerCase(string s)
@@ -29,6 +29,10 @@ string toLowerCase(string s)
 
 void initGraph(Graph *g, int m, int sender_fd)
 {
+    string msg = "Please enter the edge number " + to_string(i + 1) + " in the format: u v ";
+    if(send(clientFd, msg.c_str(), msg.size(), 0)<0){
+        perror("send");
+    }
     int stdin_save = dup(STDIN_FILENO); // Save the current state of STDIN
     dup2(sender_fd, STDIN_FILENO);      // Redirect STDIN to the socket
     for (int i = 0; i < m; i++)
@@ -55,92 +59,124 @@ std::vector<std::string> splitStringBySpaces(const std::string &input)
     return result;
 }
 
-pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
+pair<string, Graph *> newGraph(int n, int m, int clientFd, Graph *g)
+{
+    cout << "Creating a new graph with " << n << " vertices and " << m << " edges" << endl;
+
+    if (g != nullptr)
+        delete g;
+    g = new Graph(n);          // Create a new graph of n vertices
+    initGraph(g, m, clientFd); // Initialize the graph with m edges
+
+    string msg = "Client " + to_string(clientFd) + " successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges" + "\n";
+    cout<< "Graph created successfully\n";
+    return {msg, g};
+}
+
+pair<string, Graph *> newEdge(int n, int m, int clientFd, Graph *g)
+{
+    cout << "Adding an edge from " << n << " to " << m << endl;
+    cout << &(*g);
+    g->addEdge(n - 1, m - 1);        // Add edge from u to v
+    g->addEdgeReverse(n - 1, m - 1); // Add reverse edge for the transpose graph
+    string msg = "Client " + to_string(clientFd) + " added an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+    return {msg, g};
+}
+
+pair<string, Graph *> removeedge(int n, int m, int clientFd, Graph *g)
+{
+    cout << "Removing an edge from " << n << " to " << m << endl;
+    g->removeEdge(n - 1, m - 1); // Remove edge from u to v
+    string msg = "Client " + to_string(clientFd) + " removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+    return {msg, g};
+}
+
+pair<string, Graph *> kosaraju(Graph *g, int clientFd)
+{
+
+    string msg = "Client " + to_string(clientFd) + " requested to print all strongly connected components" + "\n";
+    int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
+    int pipefd[2];
+    pipe(pipefd);                   // Create a pipe
+    dup2(pipefd[1], STDOUT_FILENO); // Redirect STDOUT to the pipe
+    close(pipefd[1]);               // Close the write-end of the pipe as it's now duplicated
+
+    g->printSCCs(); // This will write to the pipe instead of STDOUT
+
+    // Restore the original STDOUT
+    dup2(stdout_save, STDOUT_FILENO);
+    close(stdout_save); // Close the saved STDOUT
+
+    // Read from the pipe
+    std::string output;
+    char buffer[128];
+    ssize_t bytes_read;
+    while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0)
+    {
+        buffer[bytes_read] = '\0'; // Null-terminate the string
+        output += buffer;
+    }
+    close(pipefd[0]); // Close the read-end of the pipe
+    // Use 'output' as needed
+    msg += "SCCs Output: \n" + output;
+    return {msg, nullptr};
+}
+
+pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string actualAction, int n, int m)
 {
     string msg;
     vector<string> tokens = splitStringBySpaces(action);
-    string realAction = tokens[0];
-    int n, m;
-
-    if (realAction == "newgraph")
+    if (tokens.size() < 1)
     {
-        n = stoi(tokens[1]);
-        m = stoi(tokens[2]);
-
-        if (g != nullptr)
-        {
-            delete g;
-        }
-        g = new Graph(n); // Create a new graph of n vertices
-
-        initGraph(g, m, sender_fd);
-        msg = "User" + to_string(sender_fd) + " successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges\n";
-        return {msg, g};
-    }
-    else if (realAction == "newedge")
-    {
-        if (g != nullptr)
-        {
-            n = stoi(tokens[1]);
-            m = stoi(tokens[2]);
-            cout << &(*g);
-            g->addEdge(n - 1, m - 1);        // Add edge from u to v
-            g->addEdgeReverse(n - 1, m - 1); // Add reverse edge for the transpose graph
-        }
-        msg = "User" + to_string(sender_fd) + " added an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+        msg = "User " + to_string(clientFd) + " sent an empty message\n";
         return {msg, nullptr};
     }
-    else if (realAction == "removeedge")
-    {
+    
+
+    if (actualAction == "newgraph")
+    { // format: newgraph n m
+        return newGraph(n, m, clientFd, g);
+    }
+    else if (actualAction == "newedge")
+    { // format: newedge n m (add an edge from n to m)
         if (g != nullptr)
         {
-            n = stoi(tokens[1]);
-            m = stoi(tokens[2]);
-            g->removeEdge(n - 1, m - 1); // Remove edge from u to v
+            return newEdge(n, m, clientFd, g);
         }
-        msg = "User" + to_string(sender_fd) + " removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
-        return {msg, nullptr};
+        else
+        {
+            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            return {msg, nullptr};
+        }
     }
-    else if (realAction == "kosaraju")
-    {
+    else if (actualAction == "removeedge")
+    { // format: removeedge n m (remove an edge from n to m)
+        if (g != nullptr)
+        {
+            return removeedge(n, m, clientFd, g);
+        }
+        else
+        {
+            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            return {msg, nullptr};
+        }
+    }
+    else if (actualAction == "kosaraju")
+    { // format: kosaraju
         if (g == nullptr)
         {
-            msg = "User " + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
+            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
             return {msg, nullptr};
         }
         else
         {
-            msg = "User" + to_string(sender_fd) + " requested to print all strongly connected components\n";
-            int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
-            int pipefd[2];
-            pipe(pipefd);                   // Create a pipe
-            dup2(pipefd[1], STDOUT_FILENO); // Redirect STDOUT to the pipe
-            close(pipefd[1]);               // Close the write-end of the pipe as it's now duplicated
-
-            g->printSCCs(); // This will write to the pipe instead of STDOUT
-
-            // Restore the original STDOUT
-            dup2(stdout_save, STDOUT_FILENO);
-            close(stdout_save); // Close the saved STDOUT
-
-            // Read from the pipe
-            std::string output;
-            char buffer[128];
-            ssize_t bytes_read;
-            while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0)
-            {
-                buffer[bytes_read] = '\0'; // Null-terminate the string
-                output += buffer;
-            }
-            close(pipefd[0]); // Close the read-end of the pipe
-            // Use 'output' as needed
-            msg += "SCCs Output: \n" + output + "\n";
-            return {msg, nullptr};
+           
+            return kosaraju(g, clientFd);
         }
     }
     else
     {
-        msg = "User " + to_string(sender_fd) + " sent a message:\n" + action + "\n";
+        msg = "Client " + to_string(clientFd) + " sent a message:" + action;
         return {msg, nullptr};
     }
 }
@@ -246,11 +282,14 @@ int main(void)
     int listener; // Listening socket descriptor
     pair<string, Graph *> ret;
     string action;
+    string actualAction;
+    int m, n;
 
     int newfd;                          // Newly accept()ed socket descriptor
     struct sockaddr_storage remoteaddr; // Client address
     socklen_t addrlen;
     string msg; // Buffer for server result to send
+    vector<string> graphActions = {"newgraph", "newedge", "removeedge", "kosaraju"};
 
     char buf[256]; // Buffer for client data
 
@@ -319,6 +358,10 @@ int main(void)
                                          getInAddr((struct sockaddr *)&remoteaddr),
                                          remoteIP, INET6_ADDRSTRLEN),
                                newfd);
+                        if (send(newfd, "Welcome to the server!\n", 24, 0) < 0)
+                        {
+                            perror("send");
+                        }
                     }
                 }
                 else
@@ -349,12 +392,29 @@ int main(void)
                     {
                         // We got some good data from a client
                         buf[nbytes] = '\0';
-                         action = toLowerCase(string(buf));
-                       
-                        cout << "Action: " << action << endl;
-                        cout << &(*g) << endl;
+                        action = toLowerCase(string(buf));
+                        vector<string> tokens = splitStringBySpaces(action);
+                        if (tokens.size() > 0)
+                        {
+                            actualAction = tokens[0];
+                        }
+                        else
+                        {
+                            actualAction = "emptyMessage";
+                        }
+                        if (find(graphActions.begin(), graphActions.end(), actualAction) == graphActions.end())
+                        {
+                            actualAction = "message";
+                        }
+                        else if (actualAction != "kosaraju")
+                        {
+                            n = stoi(tokens[1]);
+                            m = stoi(tokens[2]);
+                        }
 
-                        ret = handleInput(g, action, sender_fd);
+                        cout  <<"User"<< to_string(sender_fd)<< " made an Action: " << actualAction << endl;
+
+                        ret = handleInput(g, action, sender_fd, actualAction, n, m);
                         msg = ret.first;
                         if (ret.second != nullptr)
                         {
@@ -374,7 +434,7 @@ int main(void)
                         // Except the listener and ourselves
                         if (dest_fd != listener)
                         {
-                            if(dest_fd == sender_fd && action=="kosaraju")
+                            if (dest_fd == sender_fd && actualAction == "message") // if we send a message to ourselves, we don't want to send it
                             {
                                 continue;
                             }
@@ -386,7 +446,6 @@ int main(void)
                     }
                     delete[] msg_buf;
                     msg = "";
-
                 }
             } // END handle data from client
         } // END got ready-to-read from poll()

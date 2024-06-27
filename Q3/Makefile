@@ -22,9 +22,3 @@ clean:
 
 cleanAll: clean
 	rm -f *.gcda *.gcno *.gcov gmon.out
-
-# git:
-cps:
-	git commit -a -m "$(m)"
-	git push
-	git status

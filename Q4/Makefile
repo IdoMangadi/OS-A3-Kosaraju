@@ -8,16 +8,10 @@ OBJ_C = $(SRC_C:.c=.o)
 
 .PHONY: all clean
 
-all: kosaraju 
+all: chatLike 
 
-kosaraju: $(OBJ_CPP) 
+chatLike: $(OBJ_CPP) 
 	$(CC) $(CFLAGS) -o $@ $^
-
-reactor_server: Patterns.o Reactor_server.o deque_AL.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-client: client.cpp
-	$(CC) $(CFLAGS) $^ -o $@
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $<
@@ -26,11 +20,11 @@ client: client.cpp
 	$(CC) $(CFLAGS_C) -c $<
 
 # profiling:
-run_prof: kosaraju
-	./kosaraju < ../Q1+Q2/inputs/graph10000_300000.txt > ../Q1+Q2/prof_reports/deque_AL_output.txt 2>&1 || true
+run_prof: chatLike
+	./chatLike < ../Q1+Q2/inputs/graph10000_300000.txt > ../Q1+Q2/prof_reports/deque_AL_output.txt 2>&1 || true
 
 clean:
-	rm -f *.o kosaraju reactor_server
+	rm -f *.o chatLike 
 
 cleanAll: clean
 	rm -f *.gcda *.gcno *.gcov gmon.out

@@ -16,7 +16,6 @@ class Reactor {
     std::unordered_map<int, ReactorFunc> fdMap;  // Map of (file descriptor : callback functions)
     std::vector<struct pollfd> fds;  // Vector of pollfd structures for poll
     bool running;  // Flag to control the reactor's main loop
-    std::thread reactorThread;  // Thread for the reactor's main loop
 
     /**
      * Main loop for the reactor, polls file descriptors and calls associated functions

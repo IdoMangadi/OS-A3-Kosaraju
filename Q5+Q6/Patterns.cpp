@@ -30,8 +30,8 @@ void Reactor::run() {  // private function
 }
 
 void Reactor::startReactor(){
-    running = true; 
-    reactorThread = std::thread(&Reactor::run, this);  // Start the reactor's main loop in a separate thread
+    running = true;
+    this->run();  // Start the reactor's main loop in a separate thread
 }
 
 void Reactor::addFdToReactor(int fd, ReactorFunc func) {
@@ -45,11 +45,14 @@ void Reactor::addFdToReactor(int fd, ReactorFunc func) {
 void Reactor::removeFdFromReactor(int fd) {
     fds.erase(std::remove_if(fds.begin(), fds.end(), [fd](const struct pollfd& pfd) { return pfd.fd == fd; }), fds.end());  // Remove file descriptor from the reactor
     fdMap.erase(fd);  // Remove file descriptor from the map
+    for(auto& pfd : fds) {
+        if (pfd.fd == fd) {
+            while(true){           std::cout << "Error: file descriptor not removed from reactor" << std::endl;
+            }
+        }
+    }
 }
 
 void Reactor::stopReactor() {
     running = false;
-    if (reactorThread.joinable()) {  // if the thread is joinable, join it
-        reactorThread.join();
-    }
 }

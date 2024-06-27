@@ -66,6 +66,16 @@ int main(){
     // Get input from the user and send it to the server:
     string input;
     char response[MAXDATASIZE];
+
+    // get the first message from the server and print it:
+    int bytesReceived = recv(sockfd, response, MAXDATASIZE, 0);
+    if (bytesReceived == -1) {
+        perror("recv");
+        return 1;
+    }
+    response[bytesReceived] = '\0';
+    cout << "Server response: " << response << endl;
+
     while (true) {
         cout << "Enter a message to send to the server: ";
         getline(cin, input);
