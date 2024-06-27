@@ -27,14 +27,14 @@ string toLowerCase(string s)
     return s;
 }
 
-void initGraph(Graph *g, int m, int sender_fd)
+void initGraph(Graph *g, int m, int clientFd)
 {
-    string msg = "Please enter the edge number " + to_string(i + 1) + " in the format: u v ";
+    string msg = "To create an edge u->v please enter the edge number in the format: u v \n";
     if(send(clientFd, msg.c_str(), msg.size(), 0)<0){
         perror("send");
     }
     int stdin_save = dup(STDIN_FILENO); // Save the current state of STDIN
-    dup2(sender_fd, STDIN_FILENO);      // Redirect STDIN to the socket
+    dup2(clientFd, STDIN_FILENO);      // Redirect STDIN to the socket
     for (int i = 0; i < m; i++)
     { // Read the edges
         int u, v;
@@ -145,7 +145,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string 
         }
         else
         {
-            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graphn\n";
             return {msg, nullptr};
         }
     }
@@ -157,7 +157,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string 
         }
         else
         {
-            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph\n";
             return {msg, nullptr};
         }
     }
@@ -165,7 +165,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string 
     { // format: kosaraju
         if (g == nullptr)
         {
-            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph\n";
             return {msg, nullptr};
         }
         else

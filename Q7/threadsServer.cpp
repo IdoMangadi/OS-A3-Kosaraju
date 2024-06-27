@@ -56,42 +56,36 @@ void *getInAddr(struct sockaddr *sa)
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
+
+
+
+
+
 void initGraph(Graph *g, int m, int clientFd)
 {
-    // reading m edges from the client:
-    for (int i = 0; i < m; i++)
+    string msg = "To create an edge u->v please enter the edge number in the format: u v\n";
+    if (send(clientFd, msg.c_str(), msg.size(), 0) < 0)
     {
-        // sending instructions to the client:
-        string msg = "Please enter the edge number " + to_string(i + 1) + " in the format: u v ";
-        send(clientFd, msg.c_str(), msg.size(), 0);
-
-        // raading the msg from client in format: u v (edge from u to v)
-        char buf[1024]; // Buffer for client data
-        int bytesReceived = recv(clientFd, buf, sizeof buf, 0);
-        if (bytesReceived <= 0)
-        {
-            if (bytesReceived == 0)
-                printf("server: socket %d hung up\n", clientFd);
-            else
-                perror("recv");
-            close(clientFd); // Bye!
-        }
-        else
-        {                              // We got data from a client:
-            buf[bytesReceived] = '\0'; // Null-terminate the string
-            string action = string(buf);
-            vector<string> tokens = splitStringBySpaces(action); // Split the input string by spaces
-            int u = stoi(tokens[0]);
-            int v = stoi(tokens[1]);
-            g->addEdge(u - 1, v - 1);        // Add edge from u to v
-            g->addEdgeReverse(u - 1, v - 1); // Add reverse edge for the transpose graph
-        }
+        perror("send");
     }
+    int stdin_save = dup(STDIN_FILENO); // Save the current state of STDIN
+    dup2(clientFd, STDIN_FILENO);       // Redirect STDIN to the socket
+    for (int i = 0; i < m; i++)
+    { // Read the edges
+        int u, v;
+        cin >> u >> v;
+        g->addEdge(u - 1, v - 1);        // Add edge from u to v
+        g->addEdgeReverse(u - 1, v - 1); // Also add reverse edge for the transpose graph
+    }
+    dup2(stdin_save, STDIN_FILENO); // Restore the original STDIN
 }
+
+
 
 pair<string, Graph *> newGraph(int n, int m, int clientFd, Graph *g)
 {
-    graphMutex.lock(); // Lock the mutex before processing the client request
+    cout<<"Performing action on graph - Mutex locked\n";
+    graphMutex.lock();
     cout << "Creating a new graph with " << n << " vertices and " << m << " edges" << endl;
 
     if (g != nullptr)
@@ -99,49 +93,42 @@ pair<string, Graph *> newGraph(int n, int m, int clientFd, Graph *g)
     g = new Graph(n);          // Create a new graph of n vertices
     initGraph(g, m, clientFd); // Initialize the graph with m edges
 
-    string msg = "Action completed: Graph initialized with " + to_string(m) + " edges\n";
-    send(clientFd, msg.c_str(), msg.size(), 0); // sending the client finishing message:
-    msg = "Client " + to_string(clientFd) + " successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges";
-    graphMutex.unlock(); // Unlock the mutex after done
+    string msg = "successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges" + "\n";
+    cout << "Graph created successfully - unlocking Mutex\n";
+    graphMutex.unlock();
     return {msg, g};
 }
 
 pair<string, Graph *> newEdge(int n, int m, int clientFd, Graph *g)
 {
-    graphMutex.lock(); // Lock the mutex before processing the client request
-    cout << "mutex locked" << endl;
+    cout<<"Performing action on graph - Mutex locked\n";
+    graphMutex.lock();
     cout << "Adding an edge from " << n << " to " << m << endl;
-    cout << &(*g);
     g->addEdge(n - 1, m - 1);        // Add edge from u to v
     g->addEdgeReverse(n - 1, m - 1); // Add reverse edge for the transpose graph
-    string msg = "Action completed: an edge added from " + to_string(n) + " to " + to_string(m) + "\n";
-    send(clientFd, msg.c_str(), msg.size(), 0);
-    msg = "Client " + to_string(clientFd) + " added an edge from " + to_string(n) + " to " + to_string(m);
-    graphMutex.unlock(); // Unlock the mutex after done
-    cout << "mutex unlocked" << endl;
+    string msg = "added an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+    cout << "Edge added successfully - unlocking Mutex\n";
+    graphMutex.unlock();
     return {msg, g};
-    
 }
 
 pair<string, Graph *> removeedge(int n, int m, int clientFd, Graph *g)
 {
-    graphMutex.lock(); // Lock the mutex before processing the client request
-    cout << "mutex locked" << endl;
+    cout<<"Performing action on graph - Mutex locked\n";
+    graphMutex.lock();
     cout << "Removing an edge from " << n << " to " << m << endl;
     g->removeEdge(n - 1, m - 1); // Remove edge from u to v
-    string msg = "Action completed: an edge removed from " + to_string(n) + " to " + to_string(m);
-    send(clientFd, msg.c_str(), msg.size(), 0);
-    msg = "Client " + to_string(clientFd) + " removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
-    graphMutex.unlock(); // Unlock the mutex after done
-    cout << "mutex unlocked" << endl;
+    string msg = "removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
+    cout << "Edge removed successfully - unlocking Mutex\n";
+    graphMutex.unlock();
     return {msg, g};
 }
 
 pair<string, Graph *> kosaraju(Graph *g, int clientFd)
 {
-    graphMutex.lock(); // Lock the mutex before processing the client request
-    cout << "mutex locked" << endl;
-    string msg = "Client " + to_string(clientFd) + " requested to print all strongly connected components";
+cout<<"Performing action on graph - Mutex locked\n";
+    graphMutex.lock();
+    string msg = "requested to print all strongly connected components\n";
     int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
     int pipefd[2];
     pipe(pipefd);                   // Create a pipe
@@ -166,33 +153,27 @@ pair<string, Graph *> kosaraju(Graph *g, int clientFd)
     close(pipefd[0]); // Close the read-end of the pipe
     // Use 'output' as needed
     msg += "SCCs Output: \n" + output;
-    send(clientFd, msg.c_str(), msg.size(), 0);
-    graphMutex.unlock(); // Unlock the mutex after done
-    cout << "mutex unlocked" << endl;
-    return {msg, nullptr};
+    cout << "Strongly connected components printed successfully - unlocking Mutex\n";
     
+    return {msg, nullptr};
 }
 
-/**
+ /**
  * param g: the graph object
- * param action: the action to be performed
- * param clientFd: the client socket
- * this function handles the input from the client and performs the action on the graph.
- * it returns a pair of strings, the first string is the message to be printed to the server console
- * and the second string is the message to be sent back to the client.
- */
-
+  * param action: the action to be performed
+  * param clientFd: the client socket
+  * this function handles the input from the client and performs the action on the graph.
+  * it returns a pair of strings, the first string is the message to be printed to the server console
+  * and the second string is the message to be sent back to the client.
+  */
 pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string actualAction, int n, int m)
 {
-
     string msg;
-    vector<string> tokens = splitStringBySpaces(action);
-    if (tokens.size() < 1)
+    if (actualAction == "emptyMessage")
     {
-        msg = "User " + to_string(clientFd) + " sent an empty message\n";
+        msg = "sent an empty message\n";
         return {msg, nullptr};
     }
-    
 
     if (actualAction == "newgraph")
     { // format: newgraph n m
@@ -206,7 +187,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string 
         }
         else
         {
-            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            msg = "tried to perform the operation but there is no graph\n";
             return {msg, nullptr};
         }
     }
@@ -218,7 +199,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string 
         }
         else
         {
-            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            msg = "tried to perform the operation but there is no graph\n";
             return {msg, nullptr};
         }
     }
@@ -226,16 +207,20 @@ pair<string, Graph *> handleInput(Graph *g, string action, int clientFd, string 
     { // format: kosaraju
         if (g == nullptr)
         {
-            msg = "Client " + to_string(clientFd) + " tried to perform the operation but there is no graph";
+            msg = "tried to perform the operation but there is no graph\n";
             return {msg, nullptr};
         }
         else
         {
+
             return kosaraju(g, clientFd);
         }
     }
-    msg = "Client " + to_string(clientFd) + " sent a message:" + action;
-    return {msg, nullptr};
+    else
+    {
+        msg = "sent a message:" + action;
+        return {msg, nullptr};
+    }
 }
 
 /**
@@ -291,20 +276,21 @@ void handleClient(int clientSocket)
         }
 
         cout << "Action: " << actualAction << endl;
-
-       
         string msg;
         Graph *g2;
+
         tie(msg, g2) = handleInput(g, action, clientSocket, actualAction, n, m);
         if (g2 != nullptr)
             g = g2; // Update the global graph if needed (if the function returned a new graph object)
-
+        if (actualAction != "emptyMessage" && actualAction != "message" && actualAction != "kosaraju" && g != nullptr)
+            msg = "Graph updated successfully: " + msg;
         // Send response to client
-        const char *message = "Graph updated";
-        if (send(clientSocket, message, strlen(message), 0) == -1)
+        if (send(clientSocket, msg.c_str(), msg.size(), 0) == -1)
         {
             perror("send");
+            return;
         }
+
     } // end of while loop
 
     close(clientSocket);
@@ -370,7 +356,7 @@ void startServer()
  * standart main function that create threads for the server
  */
 int main()
-{   
+{
     std::thread serverThread(startServer);
     serverThread.join(); // Keep the main thread alive untill the server thread is finished
     return 0;
