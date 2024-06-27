@@ -17,9 +17,9 @@ void Reactor::run() {  // private function
         int ret = poll(fds.data(), fds.size(), 100);  // Poll file descriptors
 
         if (ret > 0) {  // Call associated functions for file descriptors with events
-            for (auto& pfd : fds) {
-                if (pfd.revents != 0) {
-                    fdMap[pfd.fd](pfd.fd);  // Call the associated function
+            for (auto& pfd : fds) {  // Loop through all file descriptors
+                if (pfd.revents != 0) {  // If the file descriptor has events
+                    fdMap[pfd.fd](pfd.fd);  // Call the associated function with argument as the file descriptor of the client socket
                 }
             }
         } else if (ret == -1) {
@@ -29,7 +29,7 @@ void Reactor::run() {  // private function
     }
 }
 
-void Reactor::startReactor() {
+void Reactor::startReactor(){
     running = true; 
     reactorThread = std::thread(&Reactor::run, this);  // Start the reactor's main loop in a separate thread
 }

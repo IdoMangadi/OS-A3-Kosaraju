@@ -65,6 +65,7 @@ int main(){
 
     // Get input from the user and send it to the server:
     string input;
+    char response[MAXDATASIZE];
     while (true) {
         cout << "Enter a message to send to the server: ";
         getline(cin, input);
@@ -78,18 +79,19 @@ int main(){
             break;
         }
 
-        // wait for the server to respond a TIMEOUT time (using setsockopt):
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = TIMEOUT * 1000;
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-        size_t bytesReceived = recv(sockfd, input.data(), input.size(), 0);
+        // wait for the server to respond a TIMEOUT time:
+        // struct timeval tv;
+        // tv.tv_sec = 0;
+        // tv.tv_usec = TIMEOUT * 1000;
+        // setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+        int bytesReceived = recv(sockfd, response, MAXDATASIZE, 0);
         if (bytesReceived == -1) {
             perror("recv");
             break;
         }
-        if(bytesReceived > 0){
-            cout << "Server response: " << input << endl;
+        if(bytesReceived >= 0){
+            response[bytesReceived] = '\0';
+            cout << "Server response: " << response << endl;
         }
     }
 

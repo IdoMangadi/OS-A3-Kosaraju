@@ -146,7 +146,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
 }
 
 // Get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
+void *getInAddr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET)
     {
@@ -157,7 +157,7 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 // Return a listening socket
-int get_listener_socket(void)
+int getListenerSocket(void)
 {
     int listener; // Listening socket descriptor
     int yes = 1;  // For setsockopt() SO_REUSEADDR, below
@@ -263,7 +263,7 @@ int main(void)
     struct pollfd *pfds = (struct pollfd *)malloc(sizeof *pfds * fd_size);
 
     // Set up and get a listening socket
-    listener = get_listener_socket();
+    listener = getListenerSocket();
 
     if (listener == -1)
     {
@@ -316,7 +316,7 @@ int main(void)
                         printf("pollserver: new connection from %s on "
                                "socket %d\n",
                                inet_ntop(remoteaddr.ss_family,
-                                         get_in_addr((struct sockaddr *)&remoteaddr),
+                                         getInAddr((struct sockaddr *)&remoteaddr),
                                          remoteIP, INET6_ADDRSTRLEN),
                                newfd);
                     }

@@ -16,6 +16,9 @@ kosaraju: $(OBJ_CPP)
 reactor_server: Patterns.o Reactor_server.o deque_AL.o
 	$(CC) $(CFLAGS) $^ -o $@
 
+client: client.cpp
+	$(CC) $(CFLAGS) $^ -o $@
+
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $<
 
