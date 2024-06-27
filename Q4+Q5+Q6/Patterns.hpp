@@ -13,7 +13,7 @@ typedef void (*ReactorFunc)(int fd);
  * @brief A class to represent a reactor pattern implementation
  */
 class Reactor {
-    std::unordered_map<int, ReactorFunc> fdMap;  // Map of (file descriptors : callback functions)
+    std::unordered_map<int, ReactorFunc> fdMap;  // Map of (file descriptor : callback functions)
     std::vector<struct pollfd> fds;  // Vector of pollfd structures for poll
     bool running;  // Flag to control the reactor's main loop
     std::thread reactorThread;  // Thread for the reactor's main loop

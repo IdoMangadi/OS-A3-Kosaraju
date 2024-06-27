@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <poll.h>
-#include <algorithm> // Add this line
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -28,19 +28,17 @@ Graph *g = nullptr;
 /**
  * function to convert a string to lower case
 */
-string toLowerCase(string s)
-{
+string toLowerCase(string s){
     transform(s.begin(), s.end(), s.begin(), ::tolower);
     return s;
 }
-void initGraph(Graph *g, int m, int sender_fd)
-{
+
+void initGraph(Graph *g, int m, int sender_fd){
     int stdin_save = dup(STDIN_FILENO); // Save the current state of STDIN
     dup2(sender_fd, STDIN_FILENO);      // Redirect STDIN to the socket
-    for (int i = 0; i < m; i++)
-    { // Read the edges
+    for (int i = 0; i < m; i++){ 
         int u, v;
-        cin >> u >> v;
+        cin >> u >> v;  // Read the edges
         g->addEdge(u - 1, v - 1);        // Add edge from u to v
         g->addEdgeReverse(u - 1, v - 1); // Also add reverse edge for the transpose graph
     }
@@ -52,40 +50,31 @@ std::vector<std::string> splitStringBySpaces(const std::string &input)
     std::vector<std::string> result;
     std::string temp;
 
-    while (stream >> temp)
-    {
-        result.push_back(temp);
-    }
+    while (stream >> temp) result.push_back(temp);
 
     return result;
 }
 
-pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
-{
+pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd){
+
     string msg;
-    vector<string> tokens = splitStringBySpaces(action);
-    string realAction = tokens[0];
+    vector<string> tokens = splitStringBySpaces(action);  // Split the input string by spaces
+    string realAction = tokens[0];  // Get the first token as the action
     int n, m;
 
-    if (realAction == "newgraph")
-    {
+    if (realAction == "newgraph"){
         n = stoi(tokens[1]);
         m = stoi(tokens[2]);
 
-        if (g != nullptr)
-        {
-            delete g;
-        }
+        if (g != nullptr) delete g;
+        
         g = new Graph(n); // Create a new graph of n vertices
-
         initGraph(g, m, sender_fd);
         msg = "User" + to_string(sender_fd) + " successfully created a new Graph with " + to_string(n) + " vertices and " + to_string(m) + " edges\n";
         return {msg, g};
     }
-    else if (realAction == "newedge")
-    {
-        if (g != nullptr)
-        {
+    else if (realAction == "newedge"){
+        if (g != nullptr){
             n = stoi(tokens[1]);
             m = stoi(tokens[2]);
             cout << &(*g);
@@ -95,10 +84,8 @@ pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
         msg = "User" + to_string(sender_fd) + " added an edge from " + to_string(n) + " to " + to_string(m) + "\n";
         return {msg, nullptr};
     }
-    else if (realAction == "removeedge")
-    {
-        if (g != nullptr)
-        {
+    else if (realAction == "removeedge"){
+        if (g != nullptr){
             n = stoi(tokens[1]);
             m = stoi(tokens[2]);
             g->removeEdge(n - 1, m - 1); // Remove edge from u to v
@@ -106,15 +93,12 @@ pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
         msg = "User" + to_string(sender_fd) + " removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
         return {msg, nullptr};
     }
-    else if (realAction == "kosaraju")
-    {
-        if (g == nullptr)
-        {
+    else if (realAction == "kosaraju"){
+        if (g == nullptr){
             msg = "User " + to_string(sender_fd) + " tried to perform the operation but there is no graph\n";
             return {msg, nullptr};
         }
-        else
-        {
+        else{
             msg = "User" + to_string(sender_fd) + " requested to print all strongly connected components\n";
             int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
             int pipefd[2];
@@ -143,8 +127,7 @@ pair<string, Graph *> handleInput(Graph *g, string action, int sender_fd)
             return {msg, nullptr};
         }
     }
-    else
-    {
+    else{
         msg = "User " + to_string(sender_fd) + " sent a message:\n" + action + "\n";
         return {msg, nullptr};
     }
@@ -173,25 +156,19 @@ int get_listener_socket(void)
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0)
-    {
+    if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0){
         fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
         exit(1);
     }
 
-    for (p = ai; p != NULL; p = p->ai_next)
-    {
+    for (p = ai; p != NULL; p = p->ai_next){
         listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (listener < 0)
-        {
-            continue;
-        }
+        if (listener < 0) continue;
 
         // Lose the pesky "address already in use" error message
         setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
-        if (bind(listener, p->ai_addr, p->ai_addrlen) < 0)
-        {
+        if (bind(listener, p->ai_addr, p->ai_addrlen) < 0){
             close(listener);
             continue;
         }
@@ -202,51 +179,40 @@ int get_listener_socket(void)
     freeaddrinfo(ai); // All done with this
 
     // If we got here, it means we didn't get bound
-    if (p == NULL)
-    {
-        return -1;
-    }
+    if (p == NULL) return -1;
 
     // Listen
-    if (listen(listener, 10) == -1)
-    {
-        return -1;
-    }
+    if (listen(listener, 10) == -1) return -1;
 
     return listener;
 }
+
 /**
  * function to handle the message received from the client.
  * the availible actions are: newgraph, newedge, removeedge, kosaraju.
- * this function will be called by the reactor for each client socket.
+ * this function will be called by the reactor for each ready client socket.
  * this function will read the message from the client and operate the action on the graph.
+ * parameter: fd - the file descriptor of the client socket.
 */
-void handleClientMessage(int fd)
-{
-    char buf[1024];
+void handleClientMessage(int fd){
+
+    char buf[1024];  // Buffer for client data
     int nbytes = recv(fd, buf, sizeof buf, 0);
-    if (nbytes <= 0)
-    {
-        // Got error or connection closed by client
-        if (nbytes == 0)
-        {
-            // Connection closed
-            printf("selectserver: socket %d hung up\n", fd);
-        }
-        else
-        {
-            perror("recv");
-        }
+    if (nbytes <= 0){
+        if (nbytes == 0) printf("selectserver: socket %d hung up\n", fd);
+        else perror("recv");
         close(fd); // Bye!
     }
-    else
-    {
-        buf[nbytes] = '\0';
+    else{  // We got data from a client:
+        buf[nbytes] = '\0';  // Null-terminate the string
         printf("Received: %s\n", buf);
         string action = string(buf);
         string msg;
-        tie(msg, g) = handleInput(g, action, fd);
+        Graph* g2;
+        tie(msg, g2) = handleInput(g, action, fd);
+        if (g2 != nullptr) g = g2;  // Update the global graph if needed (if the function returned a new graph object)
         // TODO: add a response to the client
+        cout << msg << endl;
     }
 }
 
@@ -261,13 +227,13 @@ void handleIncomingConnection(int fd, Reactor *reactor)
     struct sockaddr_storage remoteaddr; // Client address
     socklen_t addrlen;
     addrlen = sizeof remoteaddr;
-    int newfd = accept(fd, (struct sockaddr *)&remoteaddr, &addrlen);
-    if (newfd == -1)
-    {
+    
+    int newfd = accept(fd, (struct sockaddr *)&remoteaddr, &addrlen);  // Accept the incoming connection
+    if (newfd == -1){
         perror("accept");
     }
-    else
-    {
+    else{
+        // print the client IP address:
         char remoteIP[INET6_ADDRSTRLEN];
         inet_ntop(remoteaddr.ss_family,
                   get_in_addr((struct sockaddr *)&remoteaddr),
@@ -275,7 +241,7 @@ void handleIncomingConnection(int fd, Reactor *reactor)
         printf("selectserver: new connection from %s on "
                "socket %d\n",
                remoteIP, newfd);
-        // add the new fd to the reactor:
+        // add the new fd to the reactor with the handleClientMessage function as the callback function:
         reactor->addFdToReactor(newfd, handleClientMessage);
     }
 }
@@ -284,13 +250,10 @@ void handleIncomingConnection(int fd, Reactor *reactor)
  * this main function is used to test the reactor pattern.
  * the idea is to create a server that listens to incoming connections.
  * when a connection accepted, the server will add the new fd to the reactor as a client socket.
- * the reactor will handle the client message and operate the action on the graph by the function associated with the client socket fd.
 */
 int main(){
-    int listener; // Listening socket descriptor
-    listener = get_listener_socket();
-    if (listener == -1)
-    {
+    int listener = get_listener_socket();  // Listening socket descriptor
+    if (listener == -1){
         fprintf(stderr, "error getting listener socket\n");
         exit(1);
     }

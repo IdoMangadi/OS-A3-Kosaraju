@@ -11,7 +11,7 @@ Reactor::~Reactor() {
     }
 }
 
-void Reactor::run() {
+void Reactor::run() {  // private function
     while (running) {  // Main loop for the reactor
         // setting timeout to 100 ms:
         int ret = poll(fds.data(), fds.size(), 100);  // Poll file descriptors
