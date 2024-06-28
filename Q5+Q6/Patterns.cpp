@@ -3,12 +3,26 @@
 #include <algorithm>
 
 
-Reactor::Reactor() : running(false) {}
 
+Reactor* Reactor::instance = nullptr;
+std::once_flag Reactor::initInstanceFlag;
+
+Reactor::Reactor() : running(false) {}
 Reactor::~Reactor() {
     if (running) {  // Stop the reactor if it's running
         stopReactor();
-    }
+    }    
+}
+
+
+
+Reactor& Reactor::getInstance() {
+    std::call_once(initInstanceFlag, initSingleton);
+    return *instance;
+}
+
+void Reactor::initSingleton() {
+    instance = new Reactor();
 }
 
 void Reactor::run() {  // private function

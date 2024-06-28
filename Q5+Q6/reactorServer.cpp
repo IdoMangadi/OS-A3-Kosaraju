@@ -27,7 +27,6 @@ using namespace std;
 
 // creating a global variable to store the graph:
 Graph *g = nullptr;
-Reactor reactor; // Create a reactor object on the stack
 const vector<string> graphActions = {"newgraph", "newedge", "removeedge", "kosaraju"};
 
 /**
@@ -74,7 +73,7 @@ void initGraph(Graph *g, int m, int clientFd)
             else
                 perror("recv");
             close(clientFd); // Bye!
-            reactor.removeFdFromReactor(clientFd);
+            Reactor::getInstance().removeFdFromReactor(clientFd);
         }
         else
         {                              // We got data from a client:
@@ -288,7 +287,7 @@ void handleClientMessage(int clientFd)
         else
             perror("recv");
         close(clientFd);
-        reactor.removeFdFromReactor(clientFd);
+        Reactor::getInstance().removeFdFromReactor(clientFd);
     }
     else
     {                              // We got data from a client:
@@ -326,7 +325,7 @@ void handleClientMessage(int clientFd)
         if (send(clientFd, msg.c_str(), msg.size(), 0) == -1)
         {
             perror("send");
-            reactor.stopReactor();
+            Reactor::getInstance().stopReactor();
         }
     }
 }
@@ -384,11 +383,11 @@ int main()
     }
 
     // Create a thread with the start function of the reactor:
-    thread reactorThread(&Reactor::startReactor, &reactor);
+    thread reactorThread(&Reactor::startReactor, &Reactor::getInstance());
 
     while (true)
     {
-        handleIncomingConnection(listener, &reactor);
+        handleIncomingConnection(listener, &Reactor::getInstance());
     }
 
     return 0;
