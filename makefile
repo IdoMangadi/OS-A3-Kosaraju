@@ -19,8 +19,8 @@ Q5Q6:
 Q7:
 	make -C Q7 all
 
-Q8:
-	make -C Q8 all
+Q8Q9Q10:
+	make -C Q8+Q9+Q10 all
 
 # Cleaning:
 clean:
