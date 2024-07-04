@@ -1,8 +1,8 @@
 FLAGS = -Wall -g
 
-.PHONY: all clean Q1Q2 Q3
+.PHONY: all clean Q1Q2 Q3 Q4 Q5Q6 Q7 Q8Q9Q10 cps
 
-all: Q1Q2 Q3 Q4 Q5Q6 Q7 Q8
+all: Q1Q2 Q3 Q4 Q5Q6 Q7 Q8Q9Q10
 
 Q1Q2:
 	make -C Q1+Q2 all
@@ -29,7 +29,7 @@ clean:
 	make -C Q4 clean
 	make -C Q5+Q6 clean
 	make -C Q7 clean
-	make -C Q8 clean
+	make -C Q8+Q9+Q10 clean
 
 # git:
 cps:
