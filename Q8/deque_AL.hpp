@@ -22,7 +22,7 @@ public:
     Graph(int V); // Constructor to initialize a graph with V vertices
     void addEdge(int v, int w); // Function to add an edge from v to w
     void addEdgeReverse(int v, int w); // Function to add a reverse edge from w to v for the transpose graph
-    void printSCCs(); // Function to print all strongly connected components
+    bool printSCCs(); // Function to print all strongly connected components
     void removeEdge(int v, int w); // Function to remove an edge from v to w
 };
 

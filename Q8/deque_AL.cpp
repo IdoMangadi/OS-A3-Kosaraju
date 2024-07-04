@@ -42,9 +42,10 @@ void Graph::DFS(int v, vector<bool>& visited, vector<int>& component) {
 }
 
 // Print all strongly connected components
-void Graph::printSCCs() {
+bool Graph::printSCCs() {
     stack<int> Stack;
     vector<bool> visited(V, false);
+    bool atLeastHalfInOneComponent = false; // Step 1
 
     // Fill vertices in stack according to their finishing times
     for (int i = 0; i < V; i++) {
@@ -66,6 +67,11 @@ void Graph::printSCCs() {
             vector<int> component;
             DFS(v, visited, component);
 
+            // Check if the component size is at least half of the vertices
+            if (component.size() >= V / 2.0) { // Step 3
+                atLeastHalfInOneComponent = true; // Step 4
+            }
+
             // Print the component
             sort(component.begin(), component.end());
             for (int i : component) {
@@ -74,6 +80,8 @@ void Graph::printSCCs() {
             cout << endl;
         }
     }
+
+    return atLeastHalfInOneComponent; // Step 5
 }
 
 

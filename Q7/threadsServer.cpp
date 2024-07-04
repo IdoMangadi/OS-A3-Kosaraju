@@ -84,8 +84,11 @@ void initGraph(Graph *g, int m, int clientFd)
 
 pair<string, Graph *> newGraph(int n, int m, int clientFd, Graph *g)
 {
+      if(graphMutex.try_lock() == false){
+        string msg = "Graph is currently being used by another client, please try again later\n";
+        return {msg, nullptr};
+    }
     cout<<"Performing action on graph - Mutex locked\n";
-    graphMutex.lock();
     cout << "Creating a new graph with " << n << " vertices and " << m << " edges" << endl;
 
     if (g != nullptr)
@@ -101,8 +104,11 @@ pair<string, Graph *> newGraph(int n, int m, int clientFd, Graph *g)
 
 pair<string, Graph *> newEdge(int n, int m, int clientFd, Graph *g)
 {
+     if(graphMutex.try_lock() == false){
+        string msg = "Graph is currently being used by another client, please try again later\n";
+        return {msg, nullptr};
+    }
     cout<<"Performing action on graph - Mutex locked\n";
-    graphMutex.lock();
     cout << "Adding an edge from " << n << " to " << m << endl;
     g->addEdge(n - 1, m - 1);        // Add edge from u to v
     g->addEdgeReverse(n - 1, m - 1); // Add reverse edge for the transpose graph
@@ -114,8 +120,11 @@ pair<string, Graph *> newEdge(int n, int m, int clientFd, Graph *g)
 
 pair<string, Graph *> removeedge(int n, int m, int clientFd, Graph *g)
 {
+     if(graphMutex.try_lock() == false){
+        string msg = "Graph is currently being used by another client, please try again later\n";
+        return {msg, nullptr};
+    }
     cout<<"Performing action on graph - Mutex locked\n";
-    graphMutex.lock();
     cout << "Removing an edge from " << n << " to " << m << endl;
     g->removeEdge(n - 1, m - 1); // Remove edge from u to v
     string msg = "removed an edge from " + to_string(n) + " to " + to_string(m) + "\n";
@@ -126,8 +135,11 @@ pair<string, Graph *> removeedge(int n, int m, int clientFd, Graph *g)
 
 pair<string, Graph *> kosaraju(Graph *g, int clientFd)
 {
+     if(graphMutex.try_lock() == false){
+        string msg = "Graph is currently being used by another client, please try again later\n";
+        return {msg, nullptr};
+    }
 cout<<"Performing action on graph - Mutex locked\n";
-    graphMutex.lock();
     string msg = "requested to print all strongly connected components\n";
     int stdout_save = dup(STDOUT_FILENO); // Save the current state of STDOUT
     int pipefd[2];
@@ -154,6 +166,7 @@ cout<<"Performing action on graph - Mutex locked\n";
     // Use 'output' as needed
     msg += "SCCs Output: \n" + output;
     cout << "Strongly connected components printed successfully - unlocking Mutex\n";
+    graphMutex.unlock(); // Unlock the mutex
     
     return {msg, nullptr};
 }

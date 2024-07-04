@@ -16,7 +16,7 @@
 #include <fcntl.h>
 
 #include "deque_AL.hpp"
-#include "Patterns.hpp"
+#include "patterns.hpp"
 
 #define BOLD "\033[1m"
 #define RESETCOLOR "\033[0m"
@@ -27,6 +27,7 @@ using namespace std;
 
 // creating a global variable to store the graph:
 Graph *g = nullptr;
+Reactor reactor; // Creating a global reactor object
 const vector<string> graphActions = {"newgraph", "newedge", "removeedge", "kosaraju"};
 
 /**
@@ -73,10 +74,11 @@ void initGraph(Graph *g, int m, int clientFd)
             else
                 perror("recv");
             close(clientFd); // Bye!
-            Reactor::getInstance().removeFdFromReactor(clientFd);
+            reactor.removeFdFromReactor(clientFd);
         }
         else
-        {                              // We got data from a client:
+        {                            
+              // We got data from a client:
             buf[bytesReceived] = '\0'; // Null-terminate the string
             string action = string(buf);
             vector<string> tokens = splitStringBySpaces(action); // Split the input string by spaces
@@ -287,7 +289,7 @@ void handleClientMessage(int clientFd)
         else
             perror("recv");
         close(clientFd);
-        Reactor::getInstance().removeFdFromReactor(clientFd);
+       reactor.removeFdFromReactor(clientFd);
     }
     else
     {                              // We got data from a client:
@@ -325,7 +327,7 @@ void handleClientMessage(int clientFd)
         if (send(clientFd, msg.c_str(), msg.size(), 0) == -1)
         {
             perror("send");
-            Reactor::getInstance().stopReactor();
+            reactor.stopReactor();
         }
     }
 }
@@ -374,6 +376,7 @@ void handleIncomingConnection(int fd, Reactor *reactor)
  */
 int main()
 {
+   
     int listener = getListenerSocket(); // Listening socket descriptor
     cout << "Server is running on port " << PORT << endl;
     if (listener == -1)
@@ -383,12 +386,15 @@ int main()
     }
 
     // Create a thread with the start function of the reactor:
-    thread reactorThread(&Reactor::startReactor, &Reactor::getInstance());
+    thread reactorThread(&Reactor::startReactor, &reactor);
 
     while (true)
     {
-        handleIncomingConnection(listener, &Reactor::getInstance());
+        handleIncomingConnection(listener, &reactor);
     }
+    if(g!=nullptr)
+        delete g;
+    reactorThread.join(); //wait for the reactor thread to finish, this will never happen as the reactor will run forever.
 
     return 0;
 }
